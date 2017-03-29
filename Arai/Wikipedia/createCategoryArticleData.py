@@ -12,10 +12,20 @@ from gensim.corpora.wikicorpus import filter_wiki
 
 import re
 
+#mysql
+import mysql.connector
+
+#user information
+USER_NAME = 'root'
+PASSWORD = 'arai0806'
+#connection
+conn = mysql.connector.connect(user=USER_NAME, password=PASSWORD, host='localhost', database='enwiki')
+cur = conn.cursor()
+
+
 URL = 'http://en.wikipedia.org/w/api.php?'
 BASIC_PARAMETERS = {'action': 'query',
                     'format': 'xml'}
-
 
 class WikiHandler(object):
     def __init__(self, parameters, titles=None, url=URL):
@@ -87,43 +97,21 @@ def get_text_by_pageids(pageids):
     return page.get_text()
 
 if __name__ == '__main__':
-    # f = open('automobile.articles.txt', 'r')
-    # lists = f.readline().split(',')
-    # parameters = {'list': 'categorymembers',
-    #               'cmlimit': 500,
-    #               'cmtitle': 'Category:Automobiles'}
-    # page = WikiHandler(parameters)
-    # elelist = page.dom.getElementsByTagName('cm')
-    # for ele in elelist:
-    #     lists.append(ele.getAttribute('title').encode('sjis', 'ignore').decode('sjis', 'ignore'))
+    result = []
+    article_num = 100
 
-    # f0 = open('automobile.articles.10.txt', 'w')
-    #
-    # for i in range(5):
-    #     lists = category_tracing(lists)
-    #     f0.write(",".join(lists))
-    # f0.close()
+    #SQL文
+    cur.execute("select page_id from page_test;")
+    #pageidの配列
+    pages = [ page[0] for page in cur.fetchall() ]
 
-    f0 = open('automobile.articles.10.txt', 'r')
-    lists = f0.readline().split(",")
-    f0.close()
+    for page in pages[:article_num]:
+        if len(get_text_by_pageids(page)) is not 0:
+            sentence = get_text_by_pageids(page)
+            cur.execute("select cl_to from categorylinks_test where cl_from="+str(page)+";")
+            categories = [cl_from[0] for cl_from in cur.fetchall()]
+            result.append((categories, sentence))
 
-    f = open('automobile.10.en.wiki.txt', 'a')
-    i = 0
-    for l in lists[71906:]:
-        if 'Category:' not in l:
-            parameters = {'prop': 'revisions',
-                          'rvprop': 'content',
-                          'titles': l}
-            page = WikiHandler(parameters)
-            # elelist = page.dom.getElementsByTagName('rev')
-            # if elelist.length is not 0:
-            #     ele = elelist[0]
-            #     s = filter_wiki(ele.childNodes[0].data).encode('sjis', 'ignore')
-            #     result = re.sub(r'[^a-zA-Z ]', '', s.decode('sjis', 'ignore')).lower()
-            #     f.write(result)
-            f.write(page.get_text())
-        i += 1
-        print(i)
-
-    f.close()
+    #データの書き込み
+    with open('test.pickle', 'wb') as f:
+        pickle.dump(result, f)
