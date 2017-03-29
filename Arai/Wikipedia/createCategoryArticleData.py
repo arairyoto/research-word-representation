@@ -98,14 +98,14 @@ def get_text_by_pageids(pageids):
 
 if __name__ == '__main__':
     result = []
-    article_num = 100
+    article_num = 10
 
-    #SQL文
-    cur.execute("select page_id from page_test;")
+    #pageidをランダムにarticle_num個取得
+    cur.execute("select page_id from page_test order by rand() limit"+str(article_num)+";")
     #pageidの配列
     pages = [ page[0] for page in cur.fetchall() ]
 
-    for page in pages[:article_num]:
+    for page in pages:
         if len(get_text_by_pageids(page)) is not 0:
             sentence = get_text_by_pageids(page)
             cur.execute("select cl_to from categorylinks_test where cl_from="+str(page)+";")
